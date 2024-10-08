@@ -56,8 +56,8 @@ To enable push notification translation functionality, follow these steps:
    - When sending messages from the client side that you want to be translated via push notifications, ensure that you [include target languages in your message settings](https://docs.agora.io/en/agora-chat/client-api/messages/translate-messages?platform=ios#automatic-translation).
 
 
-## Sending push notifications using command-line tools
-### Using AgoraChat RESTful API endpoints
+## Sending notifications
+### Via REST
 ```
 curl -X POST \
 -H 'Authorization: Bearer ${AppToken}' \
@@ -93,49 +93,40 @@ curl -X POST \
     }
 }'
 ```
-Apple-defined keys table [here](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification#Payload-key-reference)
-### Directly to Apple Push Notification service (APNs)
-Send a Push Notification Using a Certificate
-* With a DER-encoded certificate and the PEM-encoded private key
-1. Set these shell variables:
+
+To learn more about apple-defined keys, view the [Apple Documentation](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification#Payload-key-reference)  
+To learn more about the REST API, view the [Agora Documentation](https://docs.agora.io/en/agora-chat/restful-api/message-management?platform=web#send-a-message)
+
+### Via Chat SDKs
+
+For example, when using the [AgoraChat_iOS](https://github.com/AgoraIO/AgoraChat_iOS) SDK to send messages:
+
 ```
-CERTIFICATE_FILE_NAME=path to the certificate file
-CERTIFICATE_KEY_FILE_NAME=path to the private key file
-TOPIC=App ID
-DEVICE_TOKEN=device token for your app
-APNS_HOST_NAME=api.sandbox.push.apple.com
-```
-2. Then send a push notification using this command:
-```
-curl -v --header "apns-topic: ${TOPIC}" --header "apns-push-type: alert" --cert "${CERTIFICATE_FILE_NAME}" --cert-type DER --key "${CERTIFICATE_KEY_FILE_NAME}" --key-type PEM --data '{"aps":{"alert":"test"}}' --http2  https://${APNS_HOST_NAME}/3/device/${DEVICE_TOKEN}
-```
-* With P12 certificate
-1. Set these shell variables:
-```
-CERTIFICATE_FILE_NAME=path to the certificate file
-CERTIFICATE_FILE_PASSWORD=password for the certificate file
-TOPIC=App ID
-DEVICE_TOKEN=device token for your app
-APNS_HOST_NAME=api.sandbox.push.apple.com
-```
-2. Then send a push notification using this command:
-```
-curl -v --header "apns-topic: ${TOPIC}" --header "apns-push-type: alert" --cert "${CERTIFICATE_FILE_NAME}:${CERTIFICATE_FILE_PASSWORD}" --cert-type P12 --data '{"aps":{"alert":"test"}}' --http2  https://${APNS_HOST_NAME}/3/device/${DEVICE_TOKEN}
+let body = AgoraChatTextMessageBody.init(text: text)
+body.targetLanguages = ["en", "ja"]
+let message = AgoraChatMessage.init(conversationID: group.groupId, body: body, ext: nil)
+message.chatType = .groupChat
+var messageExt = [String: Any]()
+
+// uncommit to set push template
+//        let emPushTemplate: [String: Any] = [
+//            "name": "tmp1",
+//            "title_args": ["titleArg1"],
+//            "content_args": ["contentArg1"]
+//        ]
+//        messageExt["em_push_template"] = emPushTemplate
+
+// uncommit to set push rich media
+//        messageExt["em_apns_ext"] = [
+//            "em_push_mutable_content": true,
+//            "extern": ["media-url": "https://github.com/CarlsonYuan.png"]
+//        ]
+
+message.ext = messageExt
+AgoraChatClient.shared().chatManager?.send(message, progress: nil, completion: { message, error in })
 ```
 
-Convert a P12 (PKCS#12) file to DER-encoded certificate and PEM-encoded private key
-```
-# Convert P12 to PEM (private key + certificate)
-openssl pkcs12 -in yourfile.p12 -out keycert.pem 
-openssl pkcs12 -in yourfile.p12 -legacy -nodes -out keycert.pem (OpenSSL 3.2.1 using this command)
-
-# Extract private key from PEM
-openssl rsa -in keycert.pem -out key.pem
-
-# Extract certificate from PEM
-openssl x509 -in keycert.pem -out cert.der -outform DER
-```
-For more information see [here](https://developer.apple.com/documentation/usernotifications/sending-push-notifications-using-command-line-tools)
+See [Custom Fields](https://docs.agora.io/en/agora-chat/develop/offline-push?platform=ios#custom-fields) to learn about how to customize your push notifications. 
 
 ## Device token operations by the RESTful API 
 * list the registered tokens 
